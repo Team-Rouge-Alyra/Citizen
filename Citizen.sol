@@ -43,7 +43,7 @@ contract Citizen{
     uint256 private compteur;
 //budget, incrémenté par impots, amendes, décès; décrémenté par nouveaux citoyens et entreprises   
     uint256 public budget;
-    string public help_gestion_status = "change le status 0=travailleur, 1=chomeur, 2=malade, 3=mort";
+    string public help_gestion_status = "change le statut 0=travailleur, 1=chomeur, 2=malade, 3=mort";
     enum statut { travailleur, chomeur, malade, mort }
     
     mapping (address => Citoyen ) public administration;
@@ -84,7 +84,7 @@ contract Citizen{
         
     }
     
-//gestion de statut par sage  0 travailleur, 1 chomeur, 2 malade, 3 mort     
+//gestion de statut par sage  0 travailleur, 1 chomeur, 2 malade, 3 mort   
     function gestion_statut(statut _ide, address _addr) public onlySage {
         if (_ide==statut.travailleur){
             administration[_addr].travailleur?administration[_addr].travailleur=false:administration[_addr].travailleur=true;
@@ -129,13 +129,14 @@ contract Citizen{
         require (admin[msg.sender].isSage==false);
         compteur +=1;
         a_voter[compteur].id=compteur;
+        a_voter[compteur].candidat = msg.sender;
         a_voter[compteur].temps_vote = block.timestamp + 2 minutes;
         return ("le vote", a_voter[compteur].id, "est en cours");
     }
     
 
     function vote(uint _nbvote, choix bulletin) public onlyCitoyen {
-        require ((block.timestamp)<(a_voter[_nbvote].temps_vote), "ce vote est terminé");
+    //    require ((block.timestamp)<(a_voter[_nbvote].temps_vote), "ce vote est terminé");
         require (a_voter[_nbvote].didVote[msg.sender]==false, "vous avez déjà voté");
         if (bulletin == choix.Oui){
             a_voter[_nbvote].voteOui+=1;
@@ -151,20 +152,23 @@ contract Citizen{
     }
     
     //comprend pas pourquoi les return ne fonctionnent pas 
-    function result(uint _nbvote) public returns(string memory, uint256, uint256){
-        require ((block.timestamp)>(a_voter[_nbvote].temps_vote), "ce vote est en cours");
+    function result(uint _nbvote) public view returns(string memory, uint256, uint256){
+    //    require ((block.timestamp)>(a_voter[_nbvote].temps_vote), "ce vote est en cours");
         if(a_voter[_nbvote].voteOui>a_voter[_nbvote].voteNon){
-            admin[(a_voter[_nbvote].candidat)].isSage=true;
-            admin[(a_voter[_nbvote].candidat)].depot_sage+=100;
-            administration[(a_voter[_nbvote].candidat)].wallet-=100;
-            admin[(a_voter[_nbvote].candidat)].delayRegistration=block.timestamp + 8 weeks;
+
             return ("le candidat a été élu", a_voter[_nbvote].voteOui, a_voter[_nbvote].voteNon);
         }
         else {
             return ("le candidat n'a pas été élu", a_voter[_nbvote].voteOui, a_voter[_nbvote].voteNon);
         }
     }
-    
+ 
+    function gestionSage(uint _nbvote) public onlySage{
+        admin[(a_voter[_nbvote].candidat)].isSage=true;
+        admin[(a_voter[_nbvote].candidat)].depot_sage+=100;
+        administration[(a_voter[_nbvote].candidat)].wallet-=100;
+        admin[(a_voter[_nbvote].candidat)].delayRegistration=block.timestamp + 8 weeks;
+    }
     
     
 }
